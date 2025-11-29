@@ -1,8 +1,8 @@
 // src/album/album.entity.ts
 
 export interface Album {
-    id: string; // uuid v4
-    name: string;
-    year: number;
-    artistId: string | null; // refers to Artist
-  }
+  id: string; // uuid v4
+  name: string;
+  year: number;
+  artistId: string | null; // refers to Artist
+}

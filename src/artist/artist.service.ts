@@ -1,15 +1,10 @@
-import {
-    
-    Injectable,
-    NotFoundException,
-} from '@nestjs/common'
-import { CreateArtistDto } from './dto/create-artist.dto'
-import { UpdateArtistDto } from './dto/update-artist.dto'
-import { Artist } from './artist.entity'
-import {randomUUID} from 'crypto'
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { CreateArtistDto } from './dto/create-artist.dto';
+import { UpdateArtistDto } from './dto/update-artist.dto';
+import { Artist } from './artist.entity';
+import { randomUUID } from 'crypto';
 import { TrackService } from '../track/track.service';
 import { AlbumService } from '../album/album.service';
-
 
 @Injectable()
 export class ArtistService {

@@ -25,9 +25,7 @@ export class AlbumController {
   }
 
   @Get(':id')
-  findOne(
-    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
-  ) {
+  findOne(@Param('id', new ParseUUIDPipe({ version: '4' })) id: string) {
     return this.albumService.findOne(id);
   }
 
@@ -47,9 +45,7 @@ export class AlbumController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT) // 204
-  remove(
-    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
-  ) {
+  remove(@Param('id', new ParseUUIDPipe({ version: '4' })) id: string) {
     this.albumService.remove(id);
   }
 }

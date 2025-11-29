@@ -1,33 +1,45 @@
-// src/user/user.service.ts
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { randomUUID } from 'crypto';
+import { User } from './user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdatePasswordDto } from './dto/update-password.dto';
-import { User } from './user.entity';
-import { randomUUID } from 'crypto';
-
 
 @Injectable()
 export class UserService {
-private users: User[] = []; 
-// GET /user
-  findAll() {
-    return this.users.map(({ password, ...safeUser }) => safeUser);
+  private users: User[] = [];
+
+  // helper: возвращает пользователя без поля password
+  private removePassword(user: User) {
+    const { password, ...rest } = user;
+
+    void password;
+    return rest;
   }
+
+  // GET /user
+  findAll() {
+    return this.users.map((u) => this.removePassword(u));
+  }
+
   // GET /user/:id
-  findOne(id:string){
+  findOne(id: string) {
     const user = this.users.find((u) => u.id === id);
     if (!user) {
       throw new NotFoundException(`User with id ${id} not found`);
+    }
+    return this.removePassword(user);
   }
-  const { password, ...safeUser } = user;
-    return safeUser;
-}
-// POST /user
-  create(dto: CreateUserDto) { 
+
+  // POST /user
+  create(dto: CreateUserDto) {
     const now = Date.now();
 
     const newUser: User = {
-      id: randomUUID(), 
+      id: randomUUID(),
       login: dto.login,
       password: dto.password,
       version: 1,
@@ -37,28 +49,25 @@ private users: User[] = [];
 
     this.users.push(newUser);
 
-    const { password, ...safeUser } = newUser;
-    return safeUser;
+    return this.removePassword(newUser);
   }
 
   // PUT /user/:id
   updatePassword(id: string, dto: UpdatePasswordDto) {
     const user = this.users.find((u) => u.id === id);
     if (!user) {
-      
       throw new NotFoundException(`User with id ${id} not found`);
     }
 
     if (user.password !== dto.oldPassword) {
-      
-      throw new ForbiddenException('Old password is incorrect');
+      throw new ForbiddenException('Old password is wrong');
     }
+
     user.password = dto.newPassword;
     user.version += 1;
     user.updatedAt = Date.now();
 
-    const { password, ...safeUser } = user;
-    return safeUser;
+    return this.removePassword(user);
   }
 
   // DELETE /user/:id
@@ -69,6 +78,5 @@ private users: User[] = [];
     }
 
     this.users.splice(index, 1);
-    
   }
 }

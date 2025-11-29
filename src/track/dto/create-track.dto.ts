@@ -4,9 +4,9 @@
 //albumId: string | null; // refers to Album
 //duration: number; // integer number
 //}
-import { IsString, IsOptional, IsUUID, IsInt, Min  } from "class-validator";
+import { IsString, IsOptional, IsUUID, IsInt, Min } from 'class-validator';
 
-export class CreateTrackDto{
+export class CreateTrackDto {
   @IsString()
   name: string;
 
@@ -22,4 +22,3 @@ export class CreateTrackDto{
   @Min(0)
   duration: number;
 }
-  

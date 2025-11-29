@@ -1,7 +1,7 @@
 // src/album/dto/update-album.dto.ts
-import { IsString, IsOptional, IsUUID, IsInt, Min  } from "class-validator";
+import { IsString, IsOptional, IsUUID, IsInt, Min } from 'class-validator';
 
-export class UpdateAlbumDto{
+export class UpdateAlbumDto {
   @IsOptional()
   @IsString()
   name?: string;
@@ -14,6 +14,4 @@ export class UpdateAlbumDto{
   @IsOptional()
   @IsUUID('4')
   artistId?: string | null;
-
 }
-  
