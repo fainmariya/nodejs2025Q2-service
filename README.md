@@ -1,7 +1,7 @@
 # Home Library Service
 
-A REST service for managing a home music library.  
-It allows working with Users, Artists, Albums, Tracks, and Favorites.
+A REST service for managing a home music library.
+It supports Users, Artists, Albums, Tracks, and Favorites.
 
 ## 🔧 Tech Stack
 
@@ -10,6 +10,10 @@ It allows working with Users, Artists, Albums, Tracks, and Favorites.
 - **TypeScript**
 - **class-validator** (DTO validation)
 - **Jest** (E2E tests)
+- **PostgreSQL**(with Docker)
+- **Docker/Docker Compose** 
+- **Trivy** (image vulnerability scanning)
+
 
 ---
 
@@ -31,7 +35,36 @@ Create a .env file in the project root (if missing):
 
 PORT=4000
 
-4. Run the application
+POSTGRES_PORT=5432
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+POSTGRES_DB=music_db
+
+DATABASE_URL="postgresql://postgres:postgres@postgres:5432/music_db?schema=public"
+
+
+postgres is the hostname of the database container in Docker.
+music_db is the database name.
+schema=public is the default Prisma schema.
+
+
+## Docker images
+
+- App image: `fainmariya/home-library-app:latest`
+- DB image: `fainmariya/home-library-postgres:latest`
+- Docker Hub: https://hub.docker.com/u/fainmariya
+
+Running the Service with Docker
+
+The project contains a docker-compose.yml that runs:
+NestJS application
+PostgreSQL database
+
+Start all services
+docker compose up --build
+
+
+Run the application
 npm start
 
 
@@ -145,3 +178,16 @@ Non-existing entities cannot be added
 IDs must be valid UUID
 
 Deleting an entity automatically removes it from favorites
+
+
+Security Scan with Trivy
+To analyze Docker images for vulnerabilities, Trivy is used via Docker.
+
+Available scripts
+npm run docker:scan       # Scan application + database images
+npm run docker:scan:db    # Scan only DB image
+
+
+Trivy runs as a container and attaches to the Docker daemon via:
+
+-v /var/run/docker.sock:/var/run/docker.sock
