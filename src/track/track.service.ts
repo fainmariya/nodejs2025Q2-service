@@ -1,21 +1,33 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Track } from './track.entity';
+
 import { CreateTrackDto } from './dto/create-track.dto';
 import { UpdateTrackDto } from './dto/update-track.dto';
-import { randomUUID } from 'crypto';
+
+import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class TrackService {
-  private tracks: Track[] = [];
+  constructor(private readonly prisma: PrismaService) {}
 
   // GET /track
-  findAll() {
-    return this.tracks;
+  async findAll() {
+    return this.prisma.track.findMany({
+      include: {
+        artist: true,
+        album: true,
+      },
+    });
   }
 
   // GET /track/:id
   findOne(id: string) {
-    const track = this.tracks.find((t) => t.id === id);
+    const track = this.prisma.track.findUnique({
+      where: { id },
+      include: {
+        artist: true,
+        album: true,
+      },
+    });
     if (!track) {
       throw new NotFoundException(`Track with id ${id} not found`);
     }
@@ -23,73 +35,38 @@ export class TrackService {
   }
 
   // POST /track
-  create(dto: CreateTrackDto) {
-    const newTrack: Track = {
-      id: randomUUID(),
-      name: dto.name,
-      artistId: dto.artistId ?? null,
-      albumId: dto.albumId ?? null,
-      duration: dto.duration,
-    };
-
-    this.tracks.push(newTrack);
-    return newTrack;
-  }
-
-  // PUT /track/:id
-  update(id: string, dto: UpdateTrackDto) {
-    const track = this.tracks.find((t) => t.id === id);
-
-    // если трек не найден → 404 (то, что ждёт тест)
-    if (!track) {
-      throw new NotFoundException(`Track with id ${id} not found`);
-    }
-
-    // обновляем только те поля, которые действительно пришли
-    if (dto.name !== undefined) {
-      track.name = dto.name;
-    }
-
-    if (dto.duration !== undefined) {
-      track.duration = dto.duration;
-    }
-
-    if (dto.artistId !== undefined) {
-      track.artistId = dto.artistId;
-    }
-
-    if (dto.albumId !== undefined) {
-      track.albumId = dto.albumId;
-    }
-
-    // возвращаем обновлённый трек → контроллер отдаст 200
-    return track;
-  }
-
-  // DELETE /track/:id
-  remove(id: string) {
-    const index = this.tracks.findIndex((t) => t.id === id);
-    if (index === -1) {
-      throw new NotFoundException(`Track with id ${id} not found`);
-    }
-
-    this.tracks.splice(index, 1);
-  }
-
-  // используются при удалении артиста / альбома
-  clearArtistId(artistId: string) {
-    this.tracks.forEach((t) => {
-      if (t.artistId === artistId) {
-        t.artistId = null;
-      }
+  async create(dto: CreateTrackDto) {
+    return this.prisma.track.create({
+      data: {
+        name: dto.name,
+        artistId: dto.artistId ?? null,
+        albumId: dto.albumId ?? null,
+        duration: dto.duration,
+      },
     });
   }
 
-  clearAlbumId(albumId: string) {
-    this.tracks.forEach((t) => {
-      if (t.albumId === albumId) {
-        t.albumId = null;
-      }
+  // PUT /track/:id
+  async update(id: string, dto: UpdateTrackDto) {
+    await this.findOne(id);
+
+    return this.prisma.track.update({
+      where: { id },
+      data: {
+        name: dto.name,
+        duration: dto.duration,
+
+        artistId: dto.artistId !== undefined ? dto.artistId : undefined,
+        albumId: dto.albumId !== undefined ? dto.albumId : undefined,
+      },
+    });
+  }
+
+  async remove(id: string) {
+    await this.findOne(id);
+
+    return this.prisma.track.delete({
+      where: { id },
     });
   }
 }
