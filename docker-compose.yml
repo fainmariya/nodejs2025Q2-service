@@ -1,0 +1,51 @@
+services:
+  postgres:
+    build:
+      context: .
+      dockerfile: docker/db/Dockerfile
+    container_name: postgres
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    ports:
+      - "5433:5432"   # было 5432:5432 или ничего — ставим 5433:5432
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - db-logs:/var/log/postgresql
+    networks:
+      - app-network
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: home-library-app
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=${DATABASE_URL_DOCKER}   # ← внутри контейнера подменяем URL
+    ports:
+      - "${APP_PORT:-4000}:4000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - app-network
+    restart: always
+
+volumes:
+  db-data:
+  db-logs:
+
+networks:
+  app-network:
+    driver: bridge
