@@ -20,8 +20,8 @@ export class TrackService {
   }
 
   // GET /track/:id
-  findOne(id: string) {
-    const track = this.prisma.track.findUnique({
+  async findOne(id: string) {
+    const track = await this.prisma.track.findUnique({
       where: { id },
       include: {
         artist: true,
@@ -63,10 +63,15 @@ export class TrackService {
   }
 
   async remove(id: string) {
-    await this.findOne(id);
-
-    return this.prisma.track.delete({
-      where: { id },
-    });
+    try {
+      await this.prisma.track.delete({
+        where: { id },
+      });
+    } catch (e: any) {
+      if (e.code === 'P2025') {
+        throw new NotFoundException(`Traack with id ${id} not found`);
+      }
+      throw e;
+    }
   }
 }

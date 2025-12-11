@@ -47,6 +47,6 @@ export class ArtistController {
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(@Param('id', new ParseUUIDPipe({ version: '4' })) id: string) {
-    this.artistService.remove(id);
+    return this.artistService.remove(id);
   }
 }

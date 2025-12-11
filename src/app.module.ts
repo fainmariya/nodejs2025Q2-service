@@ -14,6 +14,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { LoggingModule } from './common/loggin/logging.module';
 import { LoggingMiddleware } from './common/loggin/logging.middleware';
 import { AppController } from './app.controller';
+import { AuthModule } from './auth/auth.module'
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { AppController } from './app.controller';
     TrackModule,
     AlbumModule,
     FavoritesModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [

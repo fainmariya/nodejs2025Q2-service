@@ -17,7 +17,7 @@ export class AlbumService {
   }
 
   async findOne(id: string) {
-    const album = this.prisma.album.findUnique({
+    const album = await this.prisma.album.findUnique({
       where: { id },
       include: {
         artist: true,
@@ -53,10 +53,15 @@ export class AlbumService {
     });
   }
   async remove(id: string) {
-    await this.findOne(id);
-
-    return this.prisma.album.delete({
-      where: { id },
-    });
+     try {
+          await this.prisma.album.delete({
+            where: { id },
+          });
+        } catch (e: any) {
+          if (e.code === 'P2025') {
+            throw new NotFoundException(`Album with id ${id} not found`);
+          }
+          throw e;
+        }
   }
 }

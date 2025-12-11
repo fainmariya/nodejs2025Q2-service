@@ -35,7 +35,9 @@ export class UserService {
 
     return this.removePassword(user);
   }
-
+  async findByLogin(login: string) {
+    return this.prisma.user.findUnique({ where: { login } });
+  }
   // POST /user
   async create(dto: CreateUserDto) {
     const user = await this.prisma.user.create({

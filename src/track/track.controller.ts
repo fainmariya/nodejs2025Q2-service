@@ -51,6 +51,6 @@ export class TrackController {
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT) // 204
   remove(@Param('id', new ParseUUIDPipe({ version: '4' })) id: string) {
-    this.trackService.remove(id);
+    return this.trackService.remove(id);
   }
 }

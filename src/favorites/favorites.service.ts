@@ -32,7 +32,7 @@ export class FavoritesService {
       where: { id: trackId },
     });
     if (!track) {
-      // для добавления несуществующей сущности — 422
+   
       throw new UnprocessableEntityException(
         `Track with id ${trackId} does not exist`,
       );
@@ -43,7 +43,7 @@ export class FavoritesService {
         data: { trackId },
       });
     } catch (e: any) {
-      // P2002 — попытка добавить дубликат (ignore)
+      
       if (e.code !== 'P2002') {
         throw e;
       }
