@@ -3,6 +3,9 @@ import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { LoggingService } from './common/loggin/logging.service';
 import { AllExceptionsFilter } from './common/loggin/all-exceptions.filter';
+import { ValidationPipe } from '@nestjs/common';
+
+
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -40,5 +43,10 @@ async function bootstrap() {
   const port = process.env.PORT ? Number(process.env.PORT) : 4000;
   await app.listen(port);
   logger.log(`✅ Application has started on port ${port}`);
+  
+  app.useGlobalPipes(new ValidationPipe({
+    whitelist: true,
+    transform: true,
+  }));
 }
 bootstrap();
