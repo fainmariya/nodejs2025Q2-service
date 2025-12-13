@@ -5,8 +5,10 @@ import { UserModule } from '../user/user.module';
 import { JwtModule } from '@nestjs/jwt';
 
 @Module({
-  imports: [UserModule, JwtModule.register({})], // чтобы AuthService мог пользоваться UserService
+  imports: [UserModule, JwtModule.register({})], 
   controllers: [AuthController],
   providers: [AuthService],
+exports:[JwtModule],
+  
 })
 export class AuthModule {}

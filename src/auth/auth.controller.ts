@@ -17,7 +17,7 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('signup')
-  @HttpCode(HttpStatus.CREATED)
+  @HttpCode(HttpStatus.CREATED) // 201
   signup(@Body() dto: SignupDto) {
     return this.authService.signup(dto);
   }
@@ -31,10 +31,11 @@ export class AuthController {
   @Post('refresh')
   @HttpCode(HttpStatus.OK) // 200
   refresh(@Body() dto: RefreshDto) {
-    // Требование задания: если нет refreshToken -> 401
-    if (!dto?.refreshToken) {
+    // По ТЗ: если нет refreshToken в body -> 401
+    if (!dto?.refreshToken || typeof dto.refreshToken !== 'string') {
       throw new UnauthorizedException('Refresh token is required');
     }
+
     return this.authService.refresh(dto);
   }
 }

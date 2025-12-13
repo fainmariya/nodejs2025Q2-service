@@ -1,23 +1,29 @@
 // src/auth/auth.service.ts
+
 import {
-  Injectable,
   ConflictException,
   ForbiddenException,
+  Injectable,
+  UnauthorizedException,
 } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
+import { JwtService } from '@nestjs/jwt';
+
+import { UserService } from '../user/user.service';
 import { SignupDto } from './dto/signup.dto';
 import { LoginDto } from './dto/login.dto';
 import { RefreshDto } from './dto/refresh.dto';
-import { UserService } from '../user/user.service';
 
-type Tokens = { accessToken: string; refreshToken: string };
+type Tokens = {
+  accessToken: string;
+  refreshToken: string;
+};
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly userService: UserService,
-    private readonly jwt: JwtService,
+    private readonly jwtService: JwtService,
   ) {}
 
   async signup(dto: SignupDto) {
@@ -28,25 +34,29 @@ export class AuthService {
       throw new ConflictException('User with this login already exists');
     }
 
-    const passwordHash = await bcrypt.hash(password, 10);
-
-    return this.userService.create({
-      login,
-      password: passwordHash,
-    });
+    // Важно: хеширование сейчас делается в UserService.create()
+    return this.userService.create({ login, password });
   }
 
-  private async signTokens(user: { id: string; login: string }): Promise<Tokens> {
-    const payload = { userId: user.id, login: user.login };
+  private async signTokens(userId: string, login: string): Promise<Tokens> {
+    const payload = { userId, login };
 
-    const accessToken = await this.jwt.signAsync(payload, {
-      secret: process.env.JWT_ACCESS_SECRET,
-      expiresIn: process.env.JWT_ACCESS_EXPIRES_IN || '1h',
+    const accessSecret = process.env.JWT_ACCESS_SECRET;
+    const refreshSecret = process.env.JWT_REFRESH_SECRET;
+
+    // Это не "ошибка клиента", это "ошибка конфигурации сервера"
+    if (!accessSecret || !refreshSecret) {
+      throw new Error('JWT secrets are not configured');
+    }
+
+    const accessToken = await this.jwtService.signAsync(payload, {
+      secret: accessSecret,
+      expiresIn: process.env.JWT_ACCESS_EXPIRES_IN ?? '60s',
     });
 
-    const refreshToken = await this.jwt.signAsync(payload, {
-      secret: process.env.JWT_REFRESH_SECRET,
-      expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
+    const refreshToken = await this.jwtService.signAsync(payload, {
+      secret: refreshSecret,
+      expiresIn: process.env.JWT_REFRESH_EXPIRES_IN ?? '7d',
     });
 
     return { accessToken, refreshToken };
@@ -58,24 +68,29 @@ export class AuthService {
       throw new ForbiddenException('Authentication failed');
     }
 
+    // user.password здесь — хеш из БД
     const ok = await bcrypt.compare(dto.password, user.password);
     if (!ok) {
       throw new ForbiddenException('Authentication failed');
     }
 
-    return this.signTokens({ id: user.id, login: user.login });
+    return this.signTokens(user.id, user.login);
   }
 
   async refresh(dto: RefreshDto): Promise<Tokens> {
-    // Валидацию "есть ли refreshToken" лучше делать на уровне контроллера (см. ниже)
+    // По ТЗ: если refreshToken отсутствует -> 401
+    if (!dto.refreshToken) {
+      throw new UnauthorizedException('Refresh token is required');
+    }
+
     try {
-      const payload = await this.jwt.verifyAsync(dto.refreshToken, {
+      const payload = await this.jwtService.verifyAsync(dto.refreshToken, {
         secret: process.env.JWT_REFRESH_SECRET,
       });
 
-      // payload содержит userId/login — и это достаточно, чтобы выпустить новую пару
-      return this.signTokens({ id: payload.userId, login: payload.login });
+      return this.signTokens(payload.userId, payload.login);
     } catch {
+      // По ТЗ: если refreshToken невалидный/протух -> 403
       throw new ForbiddenException('Refresh token is invalid or expired');
     }
   }

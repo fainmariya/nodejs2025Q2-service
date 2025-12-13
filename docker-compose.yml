@@ -33,6 +33,7 @@ services:
       - .env
     environment:
       - DATABASE_URL=${DATABASE_URL_DOCKER}   # ← внутри контейнера подменяем URL
+      - TEST_MODE=${TEST_MODE}
     ports:
       - "${APP_PORT:-4000}:4000"
     depends_on:

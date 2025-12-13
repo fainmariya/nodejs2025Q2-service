@@ -3,8 +3,8 @@ import { Module,
          NestModule,
          ValidationPipe } 
          from '@nestjs/common';
-import { APP_PIPE } from '@nestjs/core';
-
+import { APP_GUARD, APP_PIPE } from '@nestjs/core';
+import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { UserModule } from './user/user.module';
 import { ArtistModule } from './artist/artist.module';
 import { TrackModule } from './track/track.module';
@@ -30,6 +30,10 @@ import { AuthModule } from './auth/auth.module'
   controllers: [AppController],
   providers: [
     {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
+    {
       provide: APP_PIPE,
       useFactory: () =>
         new ValidationPipe({
@@ -39,6 +43,7 @@ import { AuthModule } from './auth/auth.module'
         }),
     },
   ],
+  
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
