@@ -1,72 +1,162 @@
-# Home Library Service
+Home Library Service
+Task 3 — Logging, Error Handling, Authentication & Authorization (JWT)
 
-## Prerequisites
+This task extends the existing REST service with logging, global error handling, and authentication & authorization using JWT.
 
-- Git - [Download & Install Git](https://git-scm.com/downloads).
-- Node.js - [Download & Install Node.js](https://nodejs.org/en/download/) and the npm package manager.
+The implementation strictly follows the task requirements and keeps existing functionality intact.
 
-## Downloading
+What Was Implemented
+1. Logging & Error Handling
+  - Custom Logging Service
+  - Logging Middleware
+  - Global Exception Filter
+  - Process-level Error Handling
 
-```
-git clone {repository URL}
-```
+2. Authentication & Authorization (JWT)
+- Password Handling
+- Auth Endpoints
+    Signup
+          POST /auth/signup
+    Request body:
+          {
+            "login": "string",
+            "password": "string"
+          }
+    Responses:
+          201 Created — user created
+          400 Bad Request — invalid DTO
+          409 Conflict — login already exists
 
-## Installing NPM modules
+    Login
+          POST /auth/login
 
-```
-npm install
-```
+    Request body:
+          {
+            "login": "string",
+            "password": "string"
+          }   
+    Response:
+          {
+            "accessToken": "...",
+            "refreshToken": "..."
+          }
 
-## Running application
+    Responses:
+            200 OK — tokens issued
+            400 Bad Request — invalid DTO
+            403 Forbidden — authentication failed
+    Refresh
+            POST /auth/refresh
 
-```
-npm start
-```
+    Request body:
+            {
+              "refreshToken": "string"
+            }
+    Responses:
+            200 OK — new access & refresh tokens
+            401 Unauthorized — refreshToken missing
+            403 Forbidden — invalid or expired refresh token
 
-After starting the app on port (4000 as default) you can open
-in your browser OpenAPI documentation by typing http://localhost:4000/doc/.
-For more information about OpenAPI/Swagger please visit https://swagger.io/.
+JWT Configuration
 
-## Testing
+JWT secrets and expiration times are stored in .env:
 
-After application running open new terminal and enter:
+            JWT_ACCESS_SECRET=access_secret_123
+            JWT_REFRESH_SECRET=refresh_secret_456
 
-To run all tests without authorization
+            JWT_ACCESS_EXPIRES_IN=60s
+            JWT_REFRESH_EXPIRES_IN=7d
 
-```
-npm run test
-```
+Authorization Guard
+A global JwtAuthGuard is applied.
 
-To run only one of all test suites
+Behavior:
 
-```
-npm run test -- <path to suite>
-```
+  All routes are protected except:
 
-To run all test with authorization
+        /
+        /doc
+        /auth/signup
+        /auth/login
+        /auth/refresh
 
-```
-npm run test:auth
-```
+  Authorization header must follow Bearer scheme:
 
-To run only specific test suite with authorization
+        Authorization: Bearer <access_token>
 
-```
-npm run test:auth -- <path to suite>
-```
 
-### Auto-fix and format
+  If token is:
 
-```
-npm run lint
-```
+        missing
+        malformed
+        expired
+        invalid
+        → request is blocked with 401 Unauthorized
 
-```
-npm run format
-```
+TEST_MODE Logic (Important)
 
-### Debugging in VSCode
+The project supports two execution modes:
 
-Press <kbd>F5</kbd> to debug.
+  Normal mode
+      npm test
 
-For more information, visit: https://code.visualstudio.com/docs/editor/debugging
+      Authentication guard is disabled
+      Service behaves like previous tasks
+
+  Auth mode
+      TEST_MODE=auth npm run test:auth
+
+        Authentication guard is enabled
+        All protected routes require a valid JWT
+
+  This behavior is implemented intentionally to satisfy testing requirements.
+
+Project Structure (Auth & Logging)
+src/
+ ├── auth/
+ │   ├── auth.controller.ts
+ │   ├── auth.service.ts
+ │   ├── auth.module.ts
+ │   ├── jwt-auth.guard.ts
+ │   └── dto/
+ │       ├── signup.dto.ts
+ │       ├── login.dto.ts
+ │       └── refresh.dto.ts
+ │
+ ├── common/loggin/
+ │   ├── logging.service.ts
+ │   ├── logging.middleware.ts
+ │   ├── logging.module.ts
+ │   └── all-exceptions.filter.ts
+
+Running the Project
+  Full Cleanup (Recommended)
+    docker compose down -v --remove-orphans
+
+  Start Containers
+    docker compose up -d --build
+
+  Apply Migrations (Required)
+    docker compose exec app npx prisma migrate deploy
+
+  Health Check
+    curl http://localhost:4000/user
+
+  Expected result:
+    []
+
+Running Tests
+Regular Tests (without auth)
+    npm test
+
+Auth Tests (with JWT protection)
+
+⚠️ Important: TEST_MODE=auth must be set before starting containers
+
+  docker compose down -v --remove-orphans
+
+  TEST_MODE=auth docker compose up -d --build
+  docker compose exec app npx prisma migrate deploy
+
+  npm run test:auth
+
