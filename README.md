@@ -1,208 +1,162 @@
-# Home Library Service
+Home Library Service
+Task 3 — Logging, Error Handling, Authentication & Authorization (JWT)
 
-A REST service for managing a home music library.
-Implements Users, Artists, Albums, Tracks and Favorites, fully persisted in PostgreSQL using Prisma ORM.
+This task extends the existing REST service with logging, global error handling, and authentication & authorization using JWT.
 
----
+The implementation strictly follows the task requirements and keeps existing functionality intact.
 
-##  Prerequisites
+What Was Implemented
+1. Logging & Error Handling
+  - Custom Logging Service
+  - Logging Middleware
+  - Global Exception Filter
+  - Process-level Error Handling
 
-Before running the project, make sure you have installed:
+2. Authentication & Authorization (JWT)
+- Password Handling
+- Auth Endpoints
+    Signup
+          POST /auth/signup
+    Request body:
+          {
+            "login": "string",
+            "password": "string"
+          }
+    Responses:
+          201 Created — user created
+          400 Bad Request — invalid DTO
+          409 Conflict — login already exists
 
-- **Git** — https://git-scm.com/downloads  
-- **Node.js LTS (v18 or higher)** — https://nodejs.org  
-- **npm** (comes with Node.js)
-- **Docker** & **Docker Compose** — https://www.docker.com/
+    Login
+          POST /auth/login
 
----
+    Request body:
+          {
+            "login": "string",
+            "password": "string"
+          }   
+    Response:
+          {
+            "accessToken": "...",
+            "refreshToken": "..."
+          }
 
-## Downloading the Project
+    Responses:
+            200 OK — tokens issued
+            400 Bad Request — invalid DTO
+            403 Forbidden — authentication failed
+    Refresh
+            POST /auth/refresh
 
-```bash
-git clone https://github.com/<your-github>/nodejs2025Q2-service.git
-cd nodejs2025Q2-service
+    Request body:
+            {
+              "refreshToken": "string"
+            }
+    Responses:
+            200 OK — new access & refresh tokens
+            401 Unauthorized — refreshToken missing
+            403 Forbidden — invalid or expired refresh token
 
-nstalling Dependencies
-npm install
+JWT Configuration
 
-Running the Application Locally (without Docker)
-npm run start:dev
+JWT secrets and expiration times are stored in .env:
 
+            JWT_ACCESS_SECRET=access_secret_123
+            JWT_REFRESH_SECRET=refresh_secret_456
 
+            JWT_ACCESS_EXPIRES_IN=60s
+            JWT_REFRESH_EXPIRES_IN=7d
 
-## Tech Stack
+Authorization Guard
+A global JwtAuthGuard is applied.
 
-Node.js 24
-NestJS
-TypeScript
-Prisma ORM
-PostgreSQL (Docker container)
-Docker / Docker Compose
-Jest (E2E tests)
-Trivy (Docker image vulnerability scanning)
+Behavior:
 
-Project Features 
-  - Fully containerized (App + Database)
-  - PostgreSQL runs only inside Docker
-  - Prisma ORM with migrations
-  - All entities stored in DB (not in-memory!)
-  - Auto-restart on container crash
-  - Volumes for DB data & logs
-  - User-defined Docker network
-  - Image size < 500 MB (optimized multistage build)
-  - Vulnerability scan included
-  - Ready-to-use DockerHub images
+  All routes are protected except:
 
+        /
+        /doc
+        /auth/signup
+        /auth/login
+        /auth/refresh
 
-Docker Images
-Component	                  Image
-App	                          fainmariya/home-library-app:latest
-Database	                  fainmariya/home-library-postgres:latest
+  Authorization header must follow Bearer scheme:
 
-DockerHub profile:
-👉 https://hub.docker.com/u/fainmariya
-
-
-#Environment Variables
-
-Create .env file in project root:
-
-APP_PORT=4000
-
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=postgres
-POSTGRES_DB=music_db
-POSTGRES_PORT=5432
-
-# Hostname "postgres" = docker service name
-DATABASE_URL="postgresql://postgres:postgres@postgres:5432/music_db?schema=public"
-
-
-
-Running with Docker
-Build and start services
-docker compose up -d --build
->>>>>>> task/docker-db
-
-
-This launches:
-
-- PostgreSQL database
-- NestJS application
-- App auto-restarts on crash
-- Both containers share user-defined bridge network
-
-Stop containers
-   docker compose down
-
-View logs
-   docker compose logs -f
-
-Database & Prisma
-   Run migrations (automatically sync DB with schema)
-     npx prisma migrate deploy
-   For development:
-     npx prisma migrate dev
-   Regenerate Prisma client
-     npx prisma generate
-Running the Application Locally (without Docker)
-     npm install
-     npm run start:dev
-
-Application runs at:
-👉 http://localhost:4000
-
-API Documentation (Swagger)
-If Swagger is enabled in main.ts, documentation will be available at:
-👉 http://localhost:4000/doc/
-
-Testing
-Run all basic E2E tests:
-   npm run test
-
-Run a specific suite:
-npm run test -- test/users.e2e.spec.ts
-npm run test -- test/artists.e2e.spec.ts
-npm run test -- test/tracks.e2e.spec.ts
-npm run test -- test/albums.e2e.spec.ts
-npm run test -- test/favorites.e2e.spec.ts
+        Authorization: Bearer <access_token>
 
 
-Entities Overview (Persisted in PostgreSQL)
+  If token is:
 
-All entities are stored in PostgreSQL using Prisma ORM with full relational mapping.
+        missing
+        malformed
+        expired
+        invalid
+        → request is blocked with 401 Unauthorized
 
-User (/user)
+TEST_MODE Logic (Important)
 
-id (UUID)
-login (unique)
-password (hashed)
-version (auto-increments on password change)
-createdAt
-updatedAt
+The project supports two execution modes:
 
-Supports: create, read, update password, delete.
+  Normal mode
+      npm test
 
-Artist (/artist)
+      Authentication guard is disabled
+      Service behaves like previous tasks
 
-id (UUID)
-name
-grammy (boolean)
-Relations:
-albums[]
-tracks[]
-favorites[]
-Deleting an artist:
-sets artistId = null in Album & Track
-removes from Favorites
+  Auth mode
+      TEST_MODE=auth npm run test:auth
 
-Album (/album)
+        Authentication guard is enabled
+        All protected routes require a valid JWT
 
-id (UUID)
-name
-year
-artistId (nullable)
-Deleting an album:
-sets albumId = null in Track
-removes from Favorites
+  This behavior is implemented intentionally to satisfy testing requirements.
 
-Track (/track)
+Project Structure (Auth & Logging)
+src/
+ ├── auth/
+ │   ├── auth.controller.ts
+ │   ├── auth.service.ts
+ │   ├── auth.module.ts
+ │   ├── jwt-auth.guard.ts
+ │   └── dto/
+ │       ├── signup.dto.ts
+ │       ├── login.dto.ts
+ │       └── refresh.dto.ts
+ │
+ ├── common/loggin/
+ │   ├── logging.service.ts
+ │   ├── logging.middleware.ts
+ │   ├── logging.module.ts
+ │   └── all-exceptions.filter.ts
 
-id (UUID)
-name
-duration
-albumId / artistId (nullable)
-Deleting a track:
-removes from Favorites
+Running the Project
+  Full Cleanup (Recommended)
+    docker compose down -v --remove-orphans
 
-Favorites (/favorites)
+  Start Containers
+    docker compose up -d --build
 
-Contains only IDs, but API returns full entities.
+  Apply Migrations (Required)
+    docker compose exec app npx prisma migrate deploy
 
-Routes:
-GET /favorites
-POST /favorites/track/:id
-POST /favorites/album/:id
-POST /favorites/artist/:id
-DELETE /favorites/entity
+  Health Check
+    curl http://localhost:4000/user
 
-Rules:
+  Expected result:
+    []
 
-Cannot add non-existing entity
-UUID is validated
-Removing entity clears it from favorites automatically
+Running Tests
+Regular Tests (without auth)
+    npm test
 
-Security Scan with Trivy
+Auth Tests (with JWT protection)
 
-Run scan for both app and DB images:
-npm run docker:scan
+⚠️ Important: TEST_MODE=auth must be set before starting containers
 
+  docker compose down -v --remove-orphans
 
-Scan only DB:
+  TEST_MODE=auth docker compose up -d --build
+  docker compose exec app npx prisma migrate deploy
 
-npm run docker:scan:db
+  npm run test:auth
 
-
-Trivy is executed via Docker and uses:
-
--v /var/run/docker.sock:/var/run/docker.sock
